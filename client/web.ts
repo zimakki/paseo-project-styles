@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { avatarColour, BASE_CSS, paletteColour, PROJECT_GROUP, PROJECT_ROW, railCss } from "../shared/styles";
+import { avatarColour, BASE_CSS, paletteColour, PROJECT_GROUP, PROJECT_ROW, railCss, STATUS_CSS } from "../shared/styles";
 
 // This plugin typechecks without the DOM library. Declare only what this module uses.
 interface ElementLike {
@@ -47,7 +47,7 @@ export function injectProjectStyles(): () => void {
   if (Platform.OS !== "web") return () => {};
 
   const base = document.createElement("style");
-  base.textContent = BASE_CSS;
+  base.textContent = BASE_CSS + STATUS_CSS;
   document.head.appendChild(base);
 
   const rails = document.createElement("style");

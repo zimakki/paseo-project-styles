@@ -19,6 +19,44 @@ ${WORKSPACE_LIST}::before { content: ""; position: absolute; left: 6px; top: 2px
 ${WORKSPACE_LIST} [data-testid^="sidebar-workspace-row-"] div[dir="auto"] { font-size: 13px !important; }
 `;
 
+// Every workspace row, pinned or in a project, holds one
+//   [data-testid="workspace-status-indicator-<status>"]
+// and a collapsed project row holds a
+//   [data-testid="project-status-indicator-<status>"]
+// carrying the most urgent status of its hidden workspaces (expanded projects show none).
+// Pinned rows are the exception: they show a project icon whose badge has no status in its test
+// ID, only an English accessibility label, so they are matched on that label. Another app
+// language leaves pinned rows unstyled.
+// The whole row then shows the status. Running gets a moving shimmer; attention (finished,
+// not yet viewed), needs input and failed get a wash that fades to the right. The colour goes in
+// background-image so Paseo's hover and selected background colours still show through.
+const ROW = '[data-testid^="sidebar-workspace-row-"]';
+const PINNED_LABELS: Record<string, string> = {
+  running: "Working",
+  attention: "Ready to review",
+  needs_input: "Needs input",
+  failed: "Failed",
+};
+const status = (name: string) =>
+  `:is(${[
+    `${ROW}:has([data-testid="workspace-status-indicator-${name}"])`,
+    `${ROW}:has([data-testid^="sidebar-row-project-icon-"] [role="status"][aria-label="${PINNED_LABELS[name]}"])`,
+    `${PROJECT_ROW}:has([data-testid="project-status-indicator-${name}"])`,
+  ].join(", ")})`;
+const wash = (rgb: string) =>
+  `background-image: linear-gradient(90deg, rgba(${rgb}, 0.28), rgba(${rgb}, 0.04) 85%) !important;`;
+
+export const STATUS_CSS = `
+:is(${ROW}, ${PROJECT_ROW}) { position: relative; }
+${status("running")} { overflow: hidden; background-image: linear-gradient(rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.08)) !important; }
+${status("running")}::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(100deg, transparent 20%, rgba(59, 130, 246, 0.3) 50%, transparent 80%); background-size: 200% 100%; animation: paseo-project-styles-sweep 1.8s linear infinite; }
+${status("attention")} { ${wash("34, 197, 94")} }
+${status("needs_input")} { ${wash("234, 179, 8")} }
+${status("failed")} { ${wash("239, 68, 68")} }
+@keyframes paseo-project-styles-sweep { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+@media (prefers-reduced-motion: reduce) { ${status("running")}::after { animation: none; background: rgba(59, 130, 246, 0.12); } }
+`;
+
 // Letter avatars are SVG data URIs whose letter colour sits in `text { fill: … }`.
 export function avatarColour(svg: string): string | undefined {
   const match = /text\s*\{\s*fill:\s*([^;}]+)/.exec(svg);
