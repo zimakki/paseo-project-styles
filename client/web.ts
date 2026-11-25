@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
-import { avatarColour, BASE_CSS, paletteColour, PROJECT_GROUP, PROJECT_ROW, railCss, STATUS_CSS } from "../shared/styles";
+import { avatarColour, BASE_CSS, paletteColour, PROJECT_GROUP, PROJECT_ROW, railCss, rowsCss, STATUS_CSS } from "../shared/styles";
+import { trackAgents } from "./agents";
 
 // This plugin typechecks without the DOM library. Declare only what this module uses.
 interface ElementLike {
@@ -42,6 +43,16 @@ function projectColours(): Map<string, string> {
   return colours;
 }
 
+// Row test IDs end in `<serverId>:<workspaceId>`; collect the hosts the sidebar shows.
+function sidebarServerIds(): Set<string> {
+  const ids = new Set<string>();
+  for (const row of Array.from(document.body.querySelectorAll('[data-testid^="sidebar-workspace-row-"]'))) {
+    const match = /^sidebar-workspace-row-([^:]+):/.exec(row.getAttribute("data-testid") ?? "");
+    if (match) ids.add(match[1]);
+  }
+  return ids;
+}
+
 // Injects the sidebar styles and keeps the per-project rail colours current. Returns cleanup.
 export function injectProjectStyles(): () => void {
   if (Platform.OS !== "web") return () => {};
@@ -53,15 +64,22 @@ export function injectProjectStyles(): () => void {
   const rails = document.createElement("style");
   document.head.appendChild(rails);
 
+  const statuses = document.createElement("style");
+  document.head.appendChild(statuses);
+
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const agents = trackAgents(() => schedule());
   const render = () => {
     timer = undefined;
     const css = railCss(projectColours());
     if (rails.textContent !== css) rails.textContent = css;
+    agents.watch(sidebarServerIds());
+    const statusCss = rowsCss(agents.rows());
+    if (statuses.textContent !== statusCss) statuses.textContent = statusCss;
   };
-  const schedule = () => {
+  function schedule() {
     timer ??= setTimeout(render, 250);
-  };
+  }
 
   const observer = new MutationObserver(schedule);
   observer.observe(document.body, { childList: true, subtree: true });
@@ -69,8 +87,10 @@ export function injectProjectStyles(): () => void {
 
   return () => {
     observer.disconnect();
+    agents.dispose();
     if (timer) clearTimeout(timer);
     base.remove();
     rails.remove();
+    statuses.remove();
   };
 }
