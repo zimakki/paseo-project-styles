@@ -43,6 +43,11 @@ const status = (name: string) =>
     `${ROW}:has([data-testid^="sidebar-row-project-icon-"] [role="status"][aria-label="${PINNED_LABELS[name]}"])`,
     `${PROJECT_ROW}:has([data-testid="project-status-indicator-${name}"])`,
   ].join(", ")})`;
+// The open workspace gets a ring in its project's colour so it stays findable whatever its status
+// wash. Paseo sets aria-selected on the open row. The ring is an outline because outlines paint
+// above the row's content and the running sweep. Pinned rows sit outside any project group, so
+// they have no --project-rail and use the fallback colour.
+const OPEN_ROW = `${ROW}[aria-selected="true"]`;
 const wash = (rgb: string) =>
   `background-image: linear-gradient(90deg, rgba(${rgb}, 0.28), rgba(${rgb}, 0.04) 85%) !important;`;
 
@@ -53,6 +58,8 @@ ${status("running")}::after { content: ""; position: absolute; inset: 0; pointer
 ${status("attention")} { ${wash("34, 197, 94")} }
 ${status("needs_input")} { ${wash("234, 179, 8")} }
 ${status("failed")} { ${wash("239, 68, 68")} }
+${OPEN_ROW} { outline: 1.5px solid var(--project-rail, ${FALLBACK_RAIL}) !important; outline-offset: -1.5px !important; }
+${OPEN_ROW} div[dir="auto"] { font-weight: 600 !important; }
 @keyframes paseo-project-styles-sweep { from { background-position: 150% 0; } to { background-position: -50% 0; } }
 @media (prefers-reduced-motion: reduce) { ${status("running")}::after { animation: none; background: rgba(59, 130, 246, 0.12); } }
 `;
