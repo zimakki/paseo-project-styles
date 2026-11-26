@@ -10,6 +10,10 @@
 //                Background work never counts as working.
 //   alsoWorking  an agent is working, but a more urgent state owns the row
 //   background   how many background tasks are running
+//
+// A sub-agent (one another agent started) that has closed never turns its row green or red. Its
+// parent already read its result, Paseo gives it no tab, and Paseo keeps it flagged unread until
+// someone opens it, so without this the row stays coloured with nothing visible to open.
 
 export type Primary = "needs_input" | "failed" | "attention" | "running" | "done";
 
@@ -19,6 +23,7 @@ export interface AgentState {
   attentionReason?: string | null;
   pendingPermissionCount: number;
   backgroundCount: number;
+  subAgent?: boolean;
 }
 
 export interface RowState {
@@ -31,6 +36,7 @@ const RANK: Record<Primary, number> = { needs_input: 0, failed: 1, attention: 2,
 
 function agentPrimary(agent: AgentState): Primary {
   if (agent.pendingPermissionCount > 0 || agent.attentionReason === "permission") return "needs_input";
+  if (agent.subAgent && agent.status === "closed") return "done";
   if (agent.requiresAttention && agent.attentionReason === "error") return "failed";
   if (agent.requiresAttention) return "attention";
   if (agent.status === "running") return "running";
