@@ -9,6 +9,8 @@ interface AgentLike {
   attentionReason?: string | null;
   pendingPermissions?: readonly unknown[];
   backgroundWork?: { count?: number; runningCount?: number };
+  parentAgentId?: string | null;
+  labels?: Readonly<Record<string, string>>;
 }
 interface ProjectLike {
   projectKey: string;
@@ -49,6 +51,7 @@ function track(agent: AgentLike, projectKey: string | undefined): Tracked {
     attentionReason: agent.attentionReason,
     pendingPermissionCount: agent.pendingPermissions?.length ?? 0,
     backgroundCount: work?.runningCount ?? work?.count ?? 0,
+    subAgent: Boolean(agent.parentAgentId ?? agent.labels?.["paseo.parent-agent-id"]),
     workspaceId: agent.workspaceId,
     projectKey,
   };
